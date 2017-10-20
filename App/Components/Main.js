@@ -7,8 +7,10 @@ import {
   TouchableHighlight,
   ActivityIndicator
 } from 'react-native';
+import { api } from '../Utils/api';
+import Dashboard from './Dashboard';
 
-var styles = StyleSheet.create({
+export var styles = StyleSheet.create({
     mainContainer: {
         flex: 1,
         padding: 30,
@@ -53,14 +55,13 @@ var styles = StyleSheet.create({
 });
 
 export default class Main extends Component {
-  constructor(props){
+  constructor(props) {
     super(props);
-
     this.state = {
       username: '',
       isLoading: false,
       error: false
-    }
+    };
   }
   handleChange(event) {
     this.setState({
@@ -72,11 +73,36 @@ export default class Main extends Component {
     this.setState({
       isLoading: true
     });
-    console.log('SUBMIT', this.state.username);
     // fetch data from github
-    // reroute to the next route, passing github info
+    api.getBio(this.state.username)
+      .then((res) => {
+        if (res.message === 'Not Found') {
+          this.setState({
+            error: 'User not found',
+            isLoading: false
+          });
+        } else {
+          // reroute to the next route, passing github info
+          this.props.navigator.push({
+            component: Dashboard,
+            title: res.username || 'Select an Option',
+            passProps: { userInfo: res }
+          });
+          // reset state
+          this.setState({
+            error: false,
+            isLoading: false,
+            username: ''
+          });
+        }
+      });
   }
   render() {
+    var showError = (
+      this.state.error ?
+        <Text style={styles.errorText}> {this.state.error} </Text> :
+        <View></View>
+    );
     return (
       <View style={styles.mainContainer}>
         <Text style={styles.title}> Search for a Github User </Text>
@@ -91,6 +117,12 @@ export default class Main extends Component {
           onPress={this.handleSubmit.bind(this)}>
             <Text style={styles.buttonText}> SEARCH </Text>
         </TouchableHighlight>
+        <ActivityIndicator
+          animating={this.state.isLoading}
+          color='#111'
+          size='large'
+        />
+        {showError}
       </View>
     )
   }
